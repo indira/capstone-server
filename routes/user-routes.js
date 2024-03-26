@@ -2,7 +2,7 @@ const userController = require("../controllers/user-controller")
 const router = require("express").Router()
 const express = require("express")
 
-router.route("/").get(userController.user)
+router.route("/login").post(userController.login)
 
 // Use POST method for user registration
 router.route("/register").post(userController.register)

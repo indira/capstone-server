@@ -1,7 +1,7 @@
 const express = require("express")
 const app = express()
 require("dotenv").config()
-const cors = require("cors")
+const cors = require("cors") // This will cross origin: differ domains
 const bodyParser = require("body-parser") // Add this line
 const { PORT } = process.env
 
