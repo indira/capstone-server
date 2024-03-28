@@ -7,29 +7,23 @@ const jwt = require("jsonwebtoken")
 const { JWT_SECRET_KEY } = process.env
 const express = require("express")
 const app = express()
-app.use(express.json()) // adds req.body
-// Function to clean up and validate user inputs
-const cleanAndValidateUserInput = (username, password) => {
-  // Clean up and validate username
-  const cleanedUsername = validator.trim(validator.escape(username)).toLowerCase()
+app.use(express.json())
 
-  // Clean up and validate password
-  const cleanedPassword = validator.trim(password)
-  if (!validator.isStrongPassword(cleanedPassword, { minLength: 8, minLowercase: 1, minUppercase: 1, minNumbers: 1 })) {
-    throw new Error("Please provide a password with at least 8 characters, including at least one lowercase letter, one uppercase letter, and one number.")
+function sanitizeInput(input) {
+  if (typeof input !== "string") {
+    return ""
   }
-
-  return { username: cleanedUsername, password: cleanedPassword }
+  return input.trim().toLowerCase()
 }
 
 const login = async (req, res) => {
-  const { username, password } = req.body
+  const username = sanitizeInput(req.body.username)
+  const password = req.body.password
 
   try {
-    // Clean up and validate user input
-    const { username: cleanedUsername, password: cleanedPassword } = cleanAndValidateUserInput(req.body.username, req.body.password)
     // Check if the username exists in the database
-    const existingUser = await knex("users").where({ username: cleanedUsername }).first()
+    const existingUser = await knex("users").where({ username }).first()
+
     if (!existingUser) {
       return res.status(404).json({
         message: "User not found. Please check your username."
@@ -37,14 +31,15 @@ const login = async (req, res) => {
     }
 
     // Verify password
-    const passwordMatch = await bcrypt.compare(cleanedPassword, existingUser.password)
+    const passwordMatch = await bcrypt.compare(password, existingUser.password)
+
     if (!passwordMatch) {
       return res.status(401).json({
         message: "Invalid password. Please try again."
       })
     }
 
-    // Construct Gravatar URL
+    // Construct Gravatar URL if email exists
     const avatarUrl = existingUser.email ? `https://gravatar.com/avatar/${md5(existingUser.email)}?s=128` : null
 
     // Generate JWT token
@@ -52,7 +47,7 @@ const login = async (req, res) => {
 
     // Return JWT token along with user details
     res.status(200).json({
-      token: token,
+      token,
       username: existingUser.username,
       avatar: avatarUrl
     })
@@ -64,33 +59,30 @@ const login = async (req, res) => {
   }
 }
 const register = async (req, res) => {
-  const { username, email, password } = req.body
-  try {
-    // Clean up and validate user input
-    const cleanedUserData = cleanAndValidateUserInput(username, password)
-    // Destructure cleaned data
-    const { username: cleanedUsername, password: cleanedPassword } = cleanedUserData
+  const username = sanitizeInput(req.body.username)
+  const password = sanitizeInput(req.body.password)
+  const email = sanitizeInput(req.body.email)
 
+  try {
     // Check if the username length is at least two characters
-    if (cleanedUsername.length < 2) {
+    if (username.length < 2) {
       return res.status(400).json({
         message: "Username must be at least two characters long."
       })
     }
 
-    // Clean up and validate email
-    const cleanedEmail = validator.trim(validator.escape(email)).toLowerCase()
-    if (!validator.isEmail(cleanedEmail)) {
+    // Check if the email is valid
+    if (!validator.isEmail(email)) {
       return res.status(400).json({
         message: "Please provide a valid email address."
       })
     }
 
     // Check if username or email already exist in the database
-    const existingUser = await knex("users").where({ username: cleanedUsername }).orWhere({ email: cleanedEmail }).first()
+    const existingUser = await knex("users").where({ username }).orWhere({ email }).first()
 
     if (existingUser) {
-      if (existingUser.username === cleanedUsername) {
+      if (existingUser.username === username) {
         return res.status(400).json({
           message: "That username is already taken."
         })
@@ -101,26 +93,33 @@ const register = async (req, res) => {
       }
     }
 
+    // Validate password length
+    if (password.length < 6) {
+      return res.status(400).json({
+        message: "Password must be at least six characters long."
+      })
+    }
+
     // Hash the password
-    const hashedPassword = bcrypt.hashSync(cleanedPassword, 10)
+    const hashedPassword = bcrypt.hashSync(password, 10)
 
     // Insert user into the database
     const [userId] = await knex("users").insert({
-      username: cleanedUsername,
-      email: cleanedEmail,
+      username: username,
+      email: email,
       password: hashedPassword // Store hashed password in the database
     })
 
     // Construct Gravatar URL
-    const avatarUrl = `https://gravatar.com/avatar/${md5(cleanedEmail)}?s=128`
+    const avatarUrl = `https://gravatar.com/avatar/${md5(email)}?s=128`
 
     // Generate AWS token
-    const token = jwt.sign({ userId: userId, username: cleanedUsername }, JWT_SECRET_KEY, { expiresIn: "5h" })
+    const token = jwt.sign({ userId: userId, username: username }, JWT_SECRET_KEY, { expiresIn: "5h" })
 
     // Return AWS token along with user details
     res.status(200).json({
       token: token,
-      username: cleanedUsername,
+      username: username,
       avatar: avatarUrl
     })
   } catch (error) {
