@@ -15,9 +15,11 @@ app.use(cors()) // allows sharing cross-origin requests
 app.use(bodyParser.json()) // Add this line
 
 const userRoutes = require("./routes/user-routes")
+const postRoutes = require("./routes/post-routes")
 
 // Register user routes
 app.use("/", userRoutes) // Mount userRouter at the root
+app.use("/", postRoutes)
 
 app.get("/", (req, res) => {
   res.send("Hello world")

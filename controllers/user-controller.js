@@ -130,7 +130,32 @@ const register = async (req, res) => {
   }
 }
 
+const mustbeLoggedIn = async (req, res, next) => {
+  const token = req.body.token
+
+  try {
+    const token = req.body.token
+    if (!token) {
+      return res.status(401).send("Unauthorized: Missing token")
+    }
+
+    const decodedToken = jwt.verify(token, JWT_SECRET_KEY)
+    if (!decodedToken) {
+      return res.status(401).send("Unauthorized: Invalid token")
+    }
+
+    // Optionally, you can attach the decoded token to the request object for further processing
+    req.user = decodedToken
+    console.log(decodedToken, "decodetoken")
+    next()
+  } catch (error) {
+    console.error("Error verifying token:", error)
+    return res.status(500).send("Internal Server Error")
+  }
+}
+
 module.exports = {
   register,
-  login
+  login,
+  mustbeLoggedIn
 }
