@@ -60,8 +60,12 @@ const login = async (req, res) => {
 }
 const register = async (req, res) => {
   const username = sanitizeInput(req.body.username)
-  const password = sanitizeInput(req.body.password)
   const email = sanitizeInput(req.body.email)
+  const password = req.body.password
+
+  if (typeof password !== "string") {
+    return ""
+  }
 
   try {
     // Check if the username length is at least two characters
@@ -136,17 +140,16 @@ const mustbeLoggedIn = async (req, res, next) => {
   try {
     const token = req.body.token
     if (!token) {
-      return res.status(401).send("Unauthorized: Missing token")
+      return res.status(401).send("You are not LoggedIn.")
     }
 
     const decodedToken = jwt.verify(token, JWT_SECRET_KEY)
     if (!decodedToken) {
-      return res.status(401).send("Unauthorized: Invalid token")
+      return res.status(401).send("You are not LoggedIn")
     }
 
     // Optionally, you can attach the decoded token to the request object for further processing
     req.user = decodedToken
-    console.log(decodedToken, "decodetoken")
     next()
   } catch (error) {
     console.error("Error verifying token:", error)
@@ -154,8 +157,35 @@ const mustbeLoggedIn = async (req, res, next) => {
   }
 }
 
+const ifUserExists = async function (req, res, next) {
+  const username = req.params.username
+  try {
+    // Query to find a user by username
+    const user = await knex("users").where("username", username).first()
+    req.profileUser = user
+    // Query to count the number of posts for the user
+    const postCount = await knex("posts").count("* as count").where("user_id", user.id).first()
+    req.postCount = postCount.count
+    const posts = await knex("posts").where("user_id", user.id)
+    req.posts = posts
+    next()
+  } catch (error) {
+    res.status(500).json({ error: "Internal server error" })
+  }
+}
+
+const profileBasicData = function (req, res) {
+  res.json({
+    profileUsername: req.profileUser.username,
+    profileAvatar: `https://gravatar.com/avatar/${md5(req.profileUser.email)}?s=128`,
+    counts: { postCount: req.postCount }
+  })
+}
+
 module.exports = {
   register,
   login,
-  mustbeLoggedIn
+  mustbeLoggedIn,
+  ifUserExists,
+  profileBasicData
 }

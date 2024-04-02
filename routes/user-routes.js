@@ -7,4 +7,6 @@ router.route("/login").post(userController.login)
 // Use POST method for user registration
 router.route("/register").post(userController.register)
 
+router.route("/profile/:username").get(userController.ifUserExists, userController.profileBasicData)
+
 module.exports = router
