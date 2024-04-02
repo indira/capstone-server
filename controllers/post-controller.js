@@ -53,7 +53,38 @@ const create = async (req, res) => {
     })
   }
 }
+const viewSinglePost = async function (req, res) {
+  const postId = req.params.id
+  try {
+    const post = await knex("posts").where("id", postId).first()
+    if (!post) {
+      // If post with the given ID is not found, send null as response
+      res.json(null)
+      return
+    }
+
+    res.json(post)
+  } catch (e) {
+    res.json(false)
+  }
+}
+
+const postDelete = async function (req, res) {
+  const postId = req.params.id
+  try {
+    const post = await knex("posts").where("id", postId).first()
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" })
+    }
+    await knex("posts").where("id", postId).delete()
+    res.json("Success")
+  } catch (e) {
+    res.json("You do not have permission to perform that action.")
+  }
+}
 
 module.exports = {
-  create
+  create,
+  viewSinglePost,
+  postDelete
 }

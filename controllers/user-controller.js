@@ -134,6 +134,20 @@ const register = async (req, res) => {
   }
 }
 
+// Middleware function for getting user posts
+const getPosts = async (req, res) => {
+  console.log(req.profileUser)
+  try {
+    const user = req.profileUser // Assuming ifUserExists middleware sets req.profileUser
+    const posts = await knex("posts").where("user_id", user.id)
+    req.posts = posts
+    res.status(200).json(posts)
+  } catch (error) {
+    console.error("Error getting user posts:", error)
+    res.status(500).json({ error: "Internal server error" })
+  }
+}
+
 const mustbeLoggedIn = async (req, res, next) => {
   const token = req.body.token
 
@@ -185,6 +199,7 @@ const profileBasicData = function (req, res) {
 module.exports = {
   register,
   login,
+  getPosts,
   mustbeLoggedIn,
   ifUserExists,
   profileBasicData
