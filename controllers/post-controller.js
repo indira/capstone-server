@@ -45,7 +45,7 @@ const create = async (req, res) => {
       title: title,
       body: body
     })
-    console.log("Data inserted into posts table successfully.")
+    res.json("Data inserted into posts table successfully.")
   } catch (error) {
     console.error("Error creating user:", error)
     return res.status(500).json({
