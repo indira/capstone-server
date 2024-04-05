@@ -1,5 +1,5 @@
 const knex = require("knex")(require("../knexfile"))
-require("dotenv").config() // load env variables from .env file, adds to process.env
+require("dotenv").config()
 const sanitizeHTML = require("sanitize-html")
 const express = require("express")
 
@@ -38,8 +38,6 @@ const create = async (req, res) => {
   }
 
   try {
-    // Add your database logic here
-    // Insert data into the posts table
     await knex("posts").insert({
       user_id: userId,
       title: title,
@@ -58,7 +56,6 @@ const viewSinglePost = async function (req, res) {
   try {
     const post = await knex("posts").where("id", postId).first()
     if (!post) {
-      // If post with the given ID is not found, send null as response
       res.json(null)
       return
     }

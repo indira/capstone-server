@@ -138,7 +138,7 @@ const register = async (req, res) => {
 const getPosts = async (req, res) => {
   console.log(req.profileUser)
   try {
-    const user = req.profileUser // Assuming ifUserExists middleware sets req.profileUser
+    const user = req.profileUser 
     const posts = await knex("posts").where("user_id", user.id)
     req.posts = posts
     res.status(200).json(posts)
@@ -161,8 +161,6 @@ const mustbeLoggedIn = async (req, res, next) => {
     if (!decodedToken) {
       return res.status(401).send("You are not LoggedIn")
     }
-
-    // Optionally, you can attach the decoded token to the request object for further processing
     req.user = decodedToken
     next()
   } catch (error) {
@@ -174,10 +172,8 @@ const mustbeLoggedIn = async (req, res, next) => {
 const ifUserExists = async function (req, res, next) {
   const username = req.params.username
   try {
-    // Query to find a user by username
     const user = await knex("users").where("username", username).first()
     req.profileUser = user
-    // Query to count the number of posts for the user
     const postCount = await knex("posts").count("* as count").where("user_id", user.id).first()
     req.postCount = postCount.count
     const posts = await knex("posts").where("user_id", user.id)
