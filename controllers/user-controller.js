@@ -136,12 +136,22 @@ const register = async (req, res) => {
 
 // Middleware function for getting user posts
 const getPosts = async (req, res) => {
-  console.log(req.profileUser)
   try {
-    const user = req.profileUser 
+    const user = req.profileUser
     const posts = await knex("posts").where("user_id", user.id)
-    req.posts = posts
-    res.status(200).json(posts)
+    // Add user avatar URL to each post object
+    const postsWithAvatar = await Promise.all(
+      posts.map(async post => {
+        const gravatarURL = `https://gravatar.com/avatar/${md5(user.email)}?s=128`
+        return {
+          ...post,
+          user_avatar: gravatarURL
+        }
+      })
+    )
+
+    req.posts = postsWithAvatar
+    res.status(200).json(postsWithAvatar)
   } catch (error) {
     console.error("Error getting user posts:", error)
     res.status(500).json({ error: "Internal server error" })
